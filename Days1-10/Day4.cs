@@ -4,81 +4,50 @@ public class Day4
 {
     public void Run()
     {
-        ///var input = FileParser.ReadInputFromFile("Test4.txt");
-        var input = FileParser.ReadInputFromFile("Day4.txt");
+        ///var key = "abcdef";
+        var key = "ckczppom";
+        var n = 1;
 
-        var cards = input
-        .Select(x => ReadInputLineToCard(x))
-        .ToDictionary(c => c.Id, c => c);
-
-        foreach (var card in cards)
+        while (true)
         {
-            Process(card.Value, cards);
-        }
+            var input = key + n.ToString();
+            var hash = CreateMD5(input);
 
-        foreach (var card in cards)
-        {
-            Console.WriteLine("Card" + card.Value.Id);
-            Console.WriteLine(card.Value.NumberOfCopies);
-        }
-
-        var result = cards.Values
-        .Select(x => x.NumberOfCopies)
-        .Sum();
-
-        Console.WriteLine("RESULT:");
-        Console.WriteLine(result);
-    }
-
-    public void Process(Card card, Dictionary<int, Card> cards)
-    {
-        foreach (var id in card.CardsWon())
-        {
-            if (cards.ContainsKey(id))
+            if (hash.Substring(0, 5) == "000000")
             {
-                cards[id].NumberOfCopies += card.NumberOfCopies;
+                Console.WriteLine($"\n\nInput: {n}");
+                Console.WriteLine($"Hash: {hash}");
+                break;
+            }
+
+            n++;
+
+            if (n % 10000000 == 0)
+            {
+                Console.WriteLine($"\n\nInput: {n}");
+                Console.WriteLine($"Hash: {hash}");
             }
         }
     }
 
-    public Card ReadInputLineToCard(string inputLine)
+    //// https://stackoverflow.com/questions/11454004/calculate-a-md5-hash-from-a-string
+    public static string CreateMD5(string input)
     {
-        var spl = inputLine.Split(new string[] { "Card ", ": " }, StringSplitOptions.RemoveEmptyEntries);
-
-        return new Card
+        // Use input string to calculate MD5 hash
+        using (var md5 = System.Security.Cryptography.MD5.Create())
         {
-            Id = int.Parse(spl[0]),
-            Matches = GetWinningNumbers(spl[1]).Count(),
-            NumberOfCopies = 1
-        };
-    }
+            byte[] inputBytes = System.Text.Encoding.ASCII.GetBytes(input);
+            byte[] hashBytes = md5.ComputeHash(inputBytes);
 
-    public int GetScore(string card)
-    {
-        var n = GetWinningNumbers(card).Count();
-        if (n == 0)
-        {
-            return 0;
+            return Convert.ToHexString(hashBytes); // .NET 5 +
+
+            // Convert the byte array to hexadecimal string prior to .NET 5
+            // StringBuilder sb = new System.Text.StringBuilder();
+            // for (int i = 0; i < hashBytes.Length; i++)
+            // {
+            //     sb.Append(hashBytes[i].ToString("X2"));
+            // }
+            // return sb.ToString();
         }
-        return Maths.IntPower(2, n - 1);
     }
-
-    public string[] GetWinningNumbers(string card)
-    {
-        var numberSets = card.Split("|")
-        .Select(x => x.Split(" ", StringSplitOptions.RemoveEmptyEntries))
-        .ToArray();
-
-        return numberSets[0]
-        .Intersect(numberSets[1])
-        .ToArray();
-    }
-}
-
-public class Card
-{
-    public int Id { get; set; }
-    public int Matches { get; set; }
-    public int NumberOfCopies { get; set; }
-    public IEnumerable<int> CardsWon() => Enumerable.Range(Id + 1, Matches);
 }

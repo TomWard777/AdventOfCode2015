@@ -2,160 +2,60 @@ namespace AdventOfCode2023;
 
 public class Day3
 {
-    private readonly char[] _numerals = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-
-    private Dictionary<char, int> _numberDictionary;
-
-    public Day3()
-    {
-        _numberDictionary = DataParser.GetNumberCharDictionary();
-    }
-
     public void Run()
     {
-        var input = FileParser.ReadInputFromFile("Test3.txt");
-        ////var input = FileParser.ReadInputFromFile("Day3.txt");
+        var input = FileParser.ReadInputFromFile("Day3.txt");
+        var directions = input.First().ToCharArray();
 
-        var (m, n, mat) = Matrices.ReadToMatrixTuple(input);
+        var list1 = new List<char>();
+        var list2 = new List<char>();
 
-        var gears = GetGears(m, n, mat);
-        var gearNumbers = GetNumbersAdjacentToGears(m, n, mat, gears);
-
-        foreach (var a in gearNumbers)
+        for (var k = 0; k < directions.Length / 2; k++)
         {
-            Console.WriteLine(a.Item1);
-            Console.WriteLine(a.Item2);
+            list1.Add(directions[2*k]);
+            list2.Add(directions[2*k + 1]);
         }
 
-        var ratios = gearNumbers
-        .GroupBy(x => x.Item2)
-        .Where(g => g.Count() > 1)
-        .Select(g => g.Select(y => y.Item1).Aggregate((acc, val) => acc * val))
-        .ToArray();
+        var h1 = GetVisitedHouses((0, 0), list1.ToArray());
+        var h2 = GetVisitedHouses((0, 0), list2.ToArray());
+        
+        var ct = h1.Union(h2).Distinct().Count();
 
-        foreach (var a in ratios)
-        {
-            Console.WriteLine(a);
-        }
-
-        Console.WriteLine("\nTOTAL:");
-        Console.WriteLine(ratios.Sum() + "\n");
-
-        Matrices.Draw(m, n, mat);
+        Console.WriteLine($"Visited {ct} places.");
     }
 
-    public List<(int, (int, int))> GetNumbersAdjacentToGears(int m, int n, char[][] mat, IEnumerable<Gear> gears)
+    public List<(int, int)> GetVisitedHouses((int, int) startingPosition, char[]? directions)
     {
-        var results = new List<(int, (int, int))>();
-        var digits = new List<int>();
-        var includeNumber = false;
-        (int, int) gearPoint = (-1, -1);
+        var position = startingPosition;
 
-        var includedPlaces = gears
-        .SelectMany(g => g.Adjacent)
-        .ToArray();
+        var visited = new List<(int, int)>();
+        visited.Add(position);
 
-        for (int i = 0; i < m; i++)
+        foreach (var step in directions)
         {
-            for (int j = 0; j < n; j++)
-            {
-                var entry = mat[i][j];
-
-                if (_numerals.Contains(entry))
-                {
-                    if (includedPlaces.Contains((i, j)))
-                    {
-                        includeNumber = true;
-                        gearPoint = GetAdjacentGearPoint(i, j, gears);
-                    }
-                    includeNumber = includeNumber || includedPlaces.Contains((i, j));
-                    digits.Add(_numberDictionary[entry]);
-                }
-                else
-                {
-                    if (digits.Any())
-                    {
-                        if (includeNumber)
-                        {
-                            results.Add((Maths.GetNumberFromDigits(digits), gearPoint));
-                        }
-                        digits = new List<int>();
-                        includeNumber = false;
-                    }
-                }
-            }
-
-            if (digits.Any() && includeNumber)
-            {
-                results.Add((Maths.GetNumberFromDigits(digits), gearPoint));
-            }
-            digits = new List<int>();
-            includeNumber = false;
+            position = Move(position, step);
+            visited.Add(position);
         }
 
-        return results;
+        return visited.Distinct().ToList();
     }
 
-    public (int, int) GetAdjacentGearPoint(int i, int j, IEnumerable<Gear> gears)
+    public (int, int) Move((int, int) position, char step)
     {
-        var adjacentGears = gears
-        .Where(g => g.Adjacent.Contains((i, j)));
+        var x = position.Item1;
+        var y = position.Item2;
 
-        if (adjacentGears.SingleOrDefault() != null)
+        switch (step)
         {
-            return adjacentGears.Single().Position;
+            case '>':
+                return (x + 1, y);
+            case '<':
+                return (x - 1, y);
+            case 'v':
+                return (x, y - 1);
+            case '^':
+                return (x, y + 1);
         }
-
-        return (-1, -1);
+        throw new Exception($"Invalid direction: {step}");
     }
-
-    public List<Gear> GetGears(int m, int n, char[][] mat)
-    {
-        var gears = new List<Gear>();
-
-        for (int i = 0; i < m; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                var entry = mat[i][j];
-                if (entry == '*')
-                {
-                    gears.Add(new Gear(m, n, i, j));
-                }
-            }
-        }
-
-        return gears;
-    }
-
-    public void Draw(int m, int n, IEnumerable<(int, int)> places)
-    {
-        for (int i = 0; i < m; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                if (places.Contains((i, j)))
-                {
-                    Console.Write("@");
-                }
-                else
-                {
-                    Console.Write(".");
-                }
-            }
-            Console.Write("\n");
-        }
-    }
-}
-
-public class Gear
-{
-    public Gear(int m, int n, int i, int j)
-    {
-        Position = (i, j);
-        Adjacent = Matrices.GetAdjacentPlaces(m, n, i, j);
-    }
-
-    public (int, int) Position { get; set; }
-    public IEnumerable<(int, int)> Adjacent { get; set; }
 }
